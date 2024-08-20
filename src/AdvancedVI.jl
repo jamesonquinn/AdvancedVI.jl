@@ -79,8 +79,9 @@ Instead, the return values should be used.
 """
 function update_variational_params! end
 
-update_variational_params!(::Type, opt_st, params, restructure, grad) =
-    Optimisers.update!(opt_st, params, grad)
+function update_variational_params!(::Type, opt_st, params, restructure, grad)
+    return Optimisers.update!(opt_st, params, grad)
+end
 
 # estimators
 """
@@ -107,13 +108,7 @@ This function needs to be implemented only if `obj` is stateful.
 - `params`: Initial variational parameters.
 - `restructure`: Function that reconstructs the variational approximation from `λ`.
 """
-init(
-    ::Random.AbstractRNG,
-    ::AbstractVariationalObjective,
-    ::Any,
-    ::Any,
-    ::Any,
-) = nothing
+init(::Random.AbstractRNG, ::AbstractVariationalObjective, ::Any, ::Any, ::Any) = nothing
 
 """
     estimate_objective([rng,] obj, q, prob; kwargs...)
@@ -136,7 +131,6 @@ Please refer to the respective documentation of each variational objective for m
 function estimate_objective end
 
 export estimate_objective
-
 
 """
     estimate_gradient!(rng, obj, adtype, out, prob, λ, restructure, obj_state)
@@ -189,17 +183,58 @@ include("objectives/elbo/entropy.jl")
 include("objectives/elbo/repgradelbo.jl")
 include("objectives/elbo/scoregradelbo.jl")
 
-
 # Variational Families
-export
-    MvLocationScale,
-    MeanFieldGaussian,
-    FullRankGaussian
+export MvLocationScale, MeanFieldGaussian, FullRankGaussian
 
 include("families/location_scale.jl")
 
+# Optimization Rules
 
-# Optimization Routine
+include("optimization/rules.jl")
+
+export DoWG, DoG, COCOB
+
+# Output averaging strategy
+
+abstract type AbstractAverager end
+
+"""
+    init(avg, params)
+
+Initialize the state of the averaging strategy `avg` with the initial parameters `params`.
+
+# Arguments
+- `avg::AbstractAverager`: Averaging strategy.
+- `params`: Initial variational parameters.
+"""
+init(::AbstractAverager, ::Any) = nothing
+
+"""
+    apply(avg, avg_st, params)
+
+Apply averaging strategy `avg` on `params` given the state `avg_st`.
+
+# Arguments
+- `avg::AbstractAverager`: Averaging strategy.
+- `avg_st`: Previous state of the averaging strategy.
+- `params`: Initial variational parameters.
+"""
+function apply(::AbstractAverager, ::Any, ::Any) end
+
+"""
+    value(avg, avg_st)
+
+Compute the output of the averaging strategy `avg` from the state `avg_st`.
+
+# Arguments
+- `avg::AbstractAverager`: Averaging strategy.
+- `avg_st`: Previous state of the averaging strategy.
+"""
+function value(::AbstractAverager, ::Any) end
+
+include("optimization/averaging.jl")
+
+export NoAveraging, PolynomialAveraging
 
 function optimize end
 
@@ -207,7 +242,6 @@ export optimize
 
 include("utils.jl")
 include("optimize.jl")
-
 
 # optional dependencies 
 if !isdefined(Base, :get_extension) # check whether :get_extension is defined in Base
@@ -235,4 +269,3 @@ end
 end
 
 end
-
