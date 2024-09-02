@@ -41,6 +41,19 @@ Evaluate the value and gradient of a function `f` at `x` using the automatic dif
 function value_and_gradient! end
 
 """
+    restructure_ad_forward(adtype, restructure, params)
+
+Apply `restructure` to `params`.
+This is an indirection for handling the type stability of `restructure`, as some AD backends require strict type stability in the AD path.
+
+# Arguments
+- `ad::ADTypes.AbstractADType`: Automatic differentiation backend. 
+- `restructure`: Callable for restructuring the varitional distribution from `params`.
+- `params`: Variational Parameters.
+"""
+restructure_ad_forward(::ADTypes.AbstractADType, restructure, params) = restructure(params)
+
+"""
     stop_gradient(adtype, x)
 
 Stop the gradient from propagating to `x` if the selected ad backend `adtype` supports it.
@@ -52,10 +65,10 @@ Otherwise, it is equivalent to `identity`.
 
 # Returns
 - `x`: Same value as the input.
-"""
-function stop_gradient end
-
 # Update for gradient descent step
+"""
+stop_gradient(::ADTypes.AbstractADType, x) = x
+
 """
     update_variational_params!(family_type, opt_st, params, restructure, grad)
 
